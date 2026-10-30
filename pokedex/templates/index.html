@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Pokédex</title>
+</head>
+<body>
+    <h1>My Pokédex</h1>
+
+    {{range .}}
+        <div>
+            <h2>#{{.ID}} - {{.Name}}</h2>
+        </div>
+    {{end}}
+</body>
+</html>
