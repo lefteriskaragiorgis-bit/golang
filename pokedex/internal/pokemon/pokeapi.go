@@ -26,14 +26,16 @@ type PokeAPIEntry struct {
 }
 
 type PokemonResponse struct {
-	ID      int
-	Name    string
-	Type    []string
-	Height  int
-	Weight  int
-	HP      int
-	Attack  int
-	Defense int
+	ID      int      `json:"id"`
+	Name    string   `json:"name"`
+	Type    []string `json:"type"`
+	Height  int      `json:"height"`
+	Weight  int      `json:"weight"`
+	HP      int      `json:"hp"`
+	Attack  int      `json:"attack"`
+	Defense int      `json:"defense"`
+	NextID  int      `json:"-"`
+	PrevID  int      `json:"-"`
 
 	Sprites struct {
 		Other struct {
@@ -113,10 +115,11 @@ func FetchPokemonByID(ctx context.Context, id int) (PokemonResponse, error) {
 	endpoint, err := url.Parse(
 		fmt.Sprintf("%s%d/", pokeAPIList, id),
 	)
-	fmt.Printf("Fetching Pokémon with ID %d from endpoint: %s\n", id, endpoint.String())
 	if err != nil {
 		return PokemonResponse{}, err
 	}
+
+	fmt.Printf("Fetching Pokémon with ID %d from endpoint: %s\n", id, endpoint.String())
 
 	req, err := http.NewRequestWithContext(
 		ctx, http.MethodGet, endpoint.String(), nil,
@@ -141,6 +144,13 @@ func FetchPokemonByID(ctx context.Context, id int) (PokemonResponse, error) {
 
 	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
 		return PokemonResponse{}, err
+	}
+
+	apiResponse.NextID = id + 1
+	if id > 1 {
+		apiResponse.PrevID = id - 1
+	} else {
+		apiResponse.PrevID = 0 // No previous Pokémon for ID 1
 	}
 
 	return apiResponse, nil

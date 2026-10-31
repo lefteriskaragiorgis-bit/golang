@@ -99,7 +99,7 @@
             font-weight: bold;
         }
 
-        .back-link {
+        .back-link, .next-link, .prev-link {
             display: block;
             margin-top: 25px;
             text-align: center;
@@ -161,6 +161,15 @@
         </div>
 
         <a href="/pokemon" class="back-link">← Back to Pokédex</a>
+        
+        <div>
+            <a href="/pokemon/{{.NextID}}" class="next-link">→ Next Pokémon</a>
+            {{if gt .PrevID 0}}
+                <a href="/pokemon/{{.PrevID}}" class="prev-link">
+                    ← Previous Pokémon
+                </a>
+            {{end}}
+        </div>
 
     </div>
 
