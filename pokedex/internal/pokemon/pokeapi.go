@@ -10,9 +10,10 @@ import (
 	"strings"
 )
 
-const pokeAPIURL = "https://pokeapi.co/api/v2/pokemon/"
+const pokeAPIURL = "https://pokeapi.co/api/v2/"
+const pokeAPIList = pokeAPIURL + "pokemon/"
 
-type PokeAPIResponse struct {
+type PokemonsResponse struct {
 	Count    int            `json:"count"`
 	Next     string         `json:"next"`
 	Previous string         `json:"previous"`
@@ -24,8 +25,27 @@ type PokeAPIEntry struct {
 	URL  string `json:"url"`
 }
 
-func FetchPokemons(ctx context.Context, limit, offset int) ([]Pokemon, error) {
-	endpoint, err := url.Parse(pokeAPIURL)
+type PokemonResponse struct {
+	ID      int
+	Name    string
+	Type    []string
+	Height  int
+	Weight  int
+	HP      int
+	Attack  int
+	Defense int
+
+	Sprites struct {
+		Other struct {
+			OfficialArtwork struct {
+				FrontDefault string `json:"front_default"`
+			} `json:"official-artwork"`
+		} `json:"other"`
+	} `json:"sprites"`
+}
+
+func FetchPokemons(ctx context.Context, limit, offset int) ([]PokemonResponse, error) {
+	endpoint, err := url.Parse(pokeAPIList)
 	if err != nil {
 		return nil, err
 	}
@@ -54,13 +74,13 @@ func FetchPokemons(ctx context.Context, limit, offset int) ([]Pokemon, error) {
 		return nil, fmt.Errorf("pokeAPI returned status %d", resp.StatusCode)
 	}
 
-	var apiResponse PokeAPIResponse
+	var apiResponse PokemonsResponse
 
 	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
 		return nil, err
 	}
 
-	pokemons := make([]Pokemon, 0, len(apiResponse.Results))
+	pokemons := make([]PokemonResponse, 0, len(apiResponse.Results))
 
 	for _, entry := range apiResponse.Results {
 		id, err := pokemonIDFromURL(entry.URL)
@@ -68,7 +88,7 @@ func FetchPokemons(ctx context.Context, limit, offset int) ([]Pokemon, error) {
 			return nil, err
 		}
 
-		pokemons = append(pokemons, Pokemon{
+		pokemons = append(pokemons, PokemonResponse{
 			ID:   id,
 			Name: entry.Name,
 		})
@@ -87,4 +107,41 @@ func pokemonIDFromURL(rawURL string) (int, error) {
 	}
 
 	return id, nil
+}
+
+func FetchPokemonByID(ctx context.Context, id int) (PokemonResponse, error) {
+	endpoint, err := url.Parse(
+		fmt.Sprintf("%s%d/", pokeAPIList, id),
+	)
+	fmt.Printf("Fetching Pokémon with ID %d from endpoint: %s\n", id, endpoint.String())
+	if err != nil {
+		return PokemonResponse{}, err
+	}
+
+	req, err := http.NewRequestWithContext(
+		ctx, http.MethodGet, endpoint.String(), nil,
+	)
+	if err != nil {
+		return PokemonResponse{}, err
+	}
+
+	client := &http.Client{}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return PokemonResponse{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return PokemonResponse{}, fmt.Errorf("pokeAPI returned status %d", resp.StatusCode)
+	}
+
+	var apiResponse PokemonResponse
+
+	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
+		return PokemonResponse{}, err
+	}
+
+	return apiResponse, nil
 }

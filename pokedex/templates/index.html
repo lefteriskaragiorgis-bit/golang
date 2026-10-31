@@ -1,15 +1,54 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>My Pokédex</title>
-</head>
-<body>
-    <h1>My Pokédex</h1>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
 
-    {{range .}}
-        <div>
-            <h2>#{{.ID}} - {{.Name}}</h2>
+        a {
+            text-decoration: none;
+            color: #0000FF;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .pokemon-list {
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .pokemon-link-container {
+            width: 80%;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+
+        .pokemon-link {
+            font-size: 22px;
+            width: 25%;
+            height: 240px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="pokemon-list">
+        <h1>My Pokédex</h1>
+        <div class="pokemon-link-container">
+            {{range .}}
+                <a class="pokemon-link" href="/pokemon/{{.ID}}">#{{.ID}} - {{.Name}}</a>
+            {{end}}
         </div>
-    {{end}}
+    </div>
 </body>
+
 </html>

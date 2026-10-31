@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Name}} - My Pokédex</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 40px 20px;
+            font-family: Arial, sans-serif;
+            background: #f1f3f6;
+            color: #333;
+        }
+
+        .pokemon-card {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 30px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .pokemon-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .pokemon-id {
+            color: #888;
+            font-size: 14px;
+        }
+
+        .pokemon-name {
+            margin: 8px 0;
+            font-size: 32px;
+            text-transform: capitalize;
+        }
+
+        .pokemon-image {
+            width: 180px;
+            height: 180px;
+            object-fit: contain;
+        }
+
+        .pokemon-types {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .type {
+            padding: 6px 14px;
+            border-radius: 20px;
+            background: #e5e7eb;
+            font-size: 13px;
+            text-transform: capitalize;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        
+        .pokemon-image {
+            min-height: 240px;
+            max-height: 240px;
+        }
+
+        .pokemon-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .stat {
+            padding: 15px;
+            background: #f7f8fa;
+            border-radius: 10px;
+        }
+
+        .stat-label {
+            display: block;
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .back-link {
+            display: block;
+            margin-top: 25px;
+            text-align: center;
+            color: #2563eb;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="pokemon-card">
+
+        <div class="pokemon-header">
+            <span class="pokemon-id">#{{.ID}}</span>
+
+            <h1 class="pokemon-name">{{.Name}}</h1>
+
+            <img class="pokemon-image" src="{{.Sprites.Other.OfficialArtwork.FrontDefault}}" alt="{{.Name}}">
+
+            <div class="pokemon-types">
+                {{range .Type}}
+                    <span class="type">{{.}}</span>
+                {{end}}
+            </div>
+        </div>
+
+        <h2>About</h2>
+
+        <div class="pokemon-info">
+            <div class="stat">
+                <span class="stat-label">Height</span>
+                <span class="stat-value">{{.Height}}</span>
+            </div>
+
+            <div class="stat">
+                <span class="stat-label">Weight</span>
+                <span class="stat-value">{{.Weight}}</span>
+            </div>
+        </div>
+
+        <h2>Base Stats</h2>
+
+        <div class="pokemon-info">
+            <div class="stat">
+                <span class="stat-label">HP</span>
+                <span class="stat-value">{{.HP}}</span>
+            </div>
+
+            <div class="stat">
+                <span class="stat-label">Attack</span>
+                <span class="stat-value">{{.Attack}}</span>
+            </div>
+
+            <div class="stat">
+                <span class="stat-label">Defense</span>
+                <span class="stat-value">{{.Defense}}</span>
+            </div>
+        </div>
+
+        <a href="/pokemon" class="back-link">← Back to Pokédex</a>
+
+    </div>
+
+</body>
+</html>

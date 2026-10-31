@@ -20,6 +20,7 @@ func main() {
 	}
 
 	mux.HandleFunc("GET /pokemon", handler.List)
+	mux.HandleFunc("GET /pokemon/{id}", handler.GetByID)
 
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }
