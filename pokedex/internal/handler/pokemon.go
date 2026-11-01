@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/lefteriskaragiorgis/pokedex/internal/pokemon"
 )
@@ -20,35 +21,41 @@ type PokemonHandler struct {
 	Cache     *pokemon.Cache
 }
 
+func (h *PokemonHandler) Index(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/pokemon", http.StatusSeeOther)
+}
+
 func (h *PokemonHandler) List(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Received request: %s %s", r.Method, r.URL.String())
 
 	limit, offset := h.parseListQueryParams(w, r)
 
-	pokemons, err := pokemon.FetchPokemons(
-		r.Context(),
-		limit,
-		offset,
-		h.Cache,
-	)
+	pokemons, err := pokemon.FetchPokemons(r.Context(), limit, offset, h.Cache)
 	if err != nil {
 		http.Error(w, "Could not retrieve Pokémon", http.StatusInternalServerError)
 		return
 	}
 
-	if r.URL.Query().Has("offset") {
-		w.Header().Set("Content-Type", "application/json")
+	if err := h.Templates.ExecuteTemplate(w, "index.html", pokemons); err != nil {
+		log.Printf("Could not render page: %v", err)
+	}
+}
 
-		if err := json.NewEncoder(w).Encode(pokemons); err != nil {
-			log.Printf("Could not encode Pokémon: %v", err)
-		}
+func (h *PokemonHandler) ListJSON(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Received request: %s %s", r.Method, r.URL.String())
+
+	limit, offset := h.parseListQueryParams(w, r)
+
+	pokemons, err := pokemon.FetchPokemons(r.Context(), limit, offset, h.Cache)
+	if err != nil {
+		http.Error(w, "Could not retrieve Pokémon", http.StatusInternalServerError)
 		return
 	}
 
-	// Normal browser requests receive HTML.
-	err = h.Templates.ExecuteTemplate(w, "index.html", pokemons)
-	if err != nil {
-		log.Printf("Could not render page: %v", err)
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(pokemons); err != nil {
+		log.Printf("Could not encode Pokémon: %v", err)
 	}
 }
 
@@ -98,5 +105,26 @@ func (h *PokemonHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	err = h.Templates.ExecuteTemplate(w, "pokemon.html", pokemons)
 	if err != nil {
 		http.Error(w, "Could not render page", http.StatusInternalServerError)
+	}
+}
+
+func (h *PokemonHandler) Search(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+
+	if strings.TrimSpace(name) == "" {
+		http.Error(w, "Pokemon name is required", http.StatusBadRequest)
+		return
+	}
+
+	pokemon, err := pokemon.FetchPokemonByName(r.Context(), name, h.Cache)
+	if err != nil {
+		http.Error(w, "Pokemon not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(pokemon); err != nil {
+		log.Printf("Could not encode Pokémon: %v", err)
 	}
 }

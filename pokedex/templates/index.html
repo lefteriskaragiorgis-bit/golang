@@ -134,6 +134,18 @@
     <div class="container">
 
         <h1>My Pokédex</h1>
+        <form id="search-form" class="search-form">
+            <input
+                type="search"
+                id="search-input"
+                placeholder="Search Pokémon by name..."
+                required
+            >
+            <button type="submit">Search</button>
+        </form>
+
+        <div id="search-results"></div>
+        <p id="search-error" role="alert"></p>
 
         <div class="pokemon-list" id="pokemon-list">
             {{range .}}
@@ -167,7 +179,12 @@
         const loadMoreButton = document.getElementById("load-more");
         const endMessage = document.getElementById("end-message");
         const errorMessage = document.getElementById("error-message");
+        const searchForm = document.getElementById("search-form");
+        const searchInput = document.getElementById("search-input");
+        const searchResults = document.getElementById("search-results");
+        const searchError = document.getElementById("search-error");
 
+        
         let offset = {{len .}};
         const limit = 20;
         let isLoading = false;
@@ -195,6 +212,7 @@
             link.append(image, id, name);
 
             pokemonList.appendChild(link);
+            return link;
         }
 
         // Fetch and render the next batch of Pokémon.
@@ -207,9 +225,7 @@
             errorMessage.style.display = "none";
 
             try {
-                const response = await fetch(
-                    `/pokemon?limit=${limit}&offset=${offset}`
-                );
+                const response = await fetch(`/api/pokemon?limit=${limit}&offset=${offset}`)
 
                 if (!response.ok) {
                     throw new Error(`Request failed: ${response.status}`);
@@ -250,6 +266,36 @@
 
         // Listen for button clicks.
         loadMoreButton.addEventListener("click", loadMorePokemon);
+
+        searchForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const name = searchInput.value.trim();
+
+            if (!name) {
+                return;
+            }
+
+            searchError.textContent = "";
+            searchResults.innerHTML = "Searching...";
+
+            try {
+                const response = await fetch(
+                    `/api/pokemon/search?name=${encodeURIComponent(name)}`
+                );
+
+                if (!response.ok) {
+                    throw new Error("Pokémon not found");
+                }
+
+                const pokemon = await response.json();
+
+                searchResults.replaceChildren(renderPokemon(pokemon));
+            } catch (error) {
+                searchResults.innerHTML = "";
+                searchError.textContent = error.message;
+            }
+        });
     </script>
 </body>
 

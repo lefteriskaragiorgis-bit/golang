@@ -171,3 +171,46 @@ func FetchPokemonByID(
 
 	return apiResponse, nil
 }
+
+func FetchPokemonByName(
+	ctx context.Context,
+	name string,
+	cache *Cache,
+) (PokemonResponse, error) {
+	name = strings.ToLower(strings.TrimSpace(name))
+
+	if name == "" {
+		return PokemonResponse{}, fmt.Errorf("pokemon name cannot be empty")
+	}
+
+	endpoint := fmt.Sprintf("%s%s/", pokeAPIURL+"pokemon/", url.PathEscape(name))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return PokemonResponse{}, err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return PokemonResponse{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return PokemonResponse{}, fmt.Errorf("pokeAPI returned status %d", resp.StatusCode)
+	}
+
+	var apiResponse PokemonResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
+		return PokemonResponse{}, err
+	}
+
+	apiResponse.NextID = apiResponse.ID + 1
+	if apiResponse.ID > 1 {
+		apiResponse.PrevID = apiResponse.ID - 1
+	}
+
+	cache.Set(apiResponse.ID, apiResponse)
+
+	return apiResponse, nil
+}
