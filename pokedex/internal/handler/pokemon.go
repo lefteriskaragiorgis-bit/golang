@@ -16,6 +16,7 @@ const (
 
 type PokemonHandler struct {
 	Templates *template.Template
+	Cache     *pokemon.Cache
 }
 
 func (h *PokemonHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +26,7 @@ func (h *PokemonHandler) List(w http.ResponseWriter, r *http.Request) {
 	limit, offset := h.parseListQueryParams(w, r)
 
 	// Fetch Pokémon from PokéAPI
-	pokemons, err := pokemon.FetchPokemons(r.Context(), limit, offset)
+	pokemons, err := pokemon.FetchPokemons(r.Context(), limit, offset, h.Cache)
 	if err != nil {
 		http.Error(w, "Could not retrieve Pokémon", http.StatusInternalServerError)
 		return
@@ -74,7 +75,7 @@ func (h *PokemonHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch Pokémon from PokéAPI
-	pokemons, err := pokemon.FetchPokemonByID(r.Context(), pokemonID)
+	pokemons, err := pokemon.FetchPokemonByID(r.Context(), pokemonID, h.Cache)
 	if err != nil {
 		http.Error(w, "Could not retrieve Pokémon", http.StatusInternalServerError)
 		return

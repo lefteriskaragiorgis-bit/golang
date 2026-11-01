@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/lefteriskaragiorgis/pokedex/internal/handler"
+	"github.com/lefteriskaragiorgis/pokedex/internal/pokemon"
 )
 
 func main() {
@@ -13,14 +14,16 @@ func main() {
 		template.ParseGlob("templates/*.html"),
 	)
 
-	mux := http.NewServeMux()
+	cache := pokemon.NewCache()
 
-	handler := &handler.PokemonHandler{
+	pokemonHandler := &handler.PokemonHandler{
 		Templates: templates,
+		Cache:     cache,
 	}
 
-	mux.HandleFunc("GET /pokemon", handler.List)
-	mux.HandleFunc("GET /pokemon/{id}", handler.GetByID)
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /pokemon", pokemonHandler.List)
+	mux.HandleFunc("GET /pokemon/{id}", pokemonHandler.GetByID)
 
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }
