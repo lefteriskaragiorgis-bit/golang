@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"html/template"
 	"log"
 	"net/http"
@@ -22,20 +23,32 @@ type PokemonHandler struct {
 func (h *PokemonHandler) List(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Received request: %s %s", r.Method, r.URL.String())
 
-	// Parse query parameters
 	limit, offset := h.parseListQueryParams(w, r)
 
-	// Fetch Pokémon from PokéAPI
-	pokemons, err := pokemon.FetchPokemons(r.Context(), limit, offset, h.Cache)
+	pokemons, err := pokemon.FetchPokemons(
+		r.Context(),
+		limit,
+		offset,
+		h.Cache,
+	)
 	if err != nil {
 		http.Error(w, "Could not retrieve Pokémon", http.StatusInternalServerError)
 		return
 	}
 
-	// Render HTML template
+	if r.URL.Query().Has("offset") {
+		w.Header().Set("Content-Type", "application/json")
+
+		if err := json.NewEncoder(w).Encode(pokemons); err != nil {
+			log.Printf("Could not encode Pokémon: %v", err)
+		}
+		return
+	}
+
+	// Normal browser requests receive HTML.
 	err = h.Templates.ExecuteTemplate(w, "index.html", pokemons)
 	if err != nil {
-		http.Error(w, "Could not render page", http.StatusInternalServerError)
+		log.Printf("Could not render page: %v", err)
 	}
 }
 

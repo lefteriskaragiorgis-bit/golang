@@ -1,54 +1,256 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Pokédex</title>
+
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 0;
+            padding: 30px 20px;
+            background: #f4f6f8;
+            color: #252525;
         }
 
-        a {
-            text-decoration: none;
-            color: #0000FF;
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
-        a:hover {
-            text-decoration: underline;
+        h1 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 35px;
+            color: #e3350d;
         }
 
         .pokemon-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+            gap: 20px;
+        }
+
+        .pokemon-card {
             display: flex;
-            align-items: center;
             flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background: #fff;
+            border-radius: 14px;
+            text-decoration: none;
+            color: inherit;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s, box-shadow 0.2s;
         }
 
-        .pokemon-link-container {
-            width: 80%;
-            margin-bottom: 10px;
+        .pokemon-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+        }
+
+        .pokemon-image {
+            width: 140px;
+            height: 140px;
+            object-fit: contain;
+            margin-bottom: 12px;
+        }
+
+        .pokemon-id {
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+
+        .pokemon-name {
+            font-size: 20px;
+            font-weight: bold;
+            text-transform: capitalize;
+        }
+
+        .load-more-container {
             display: flex;
-            flex-direction: row;
-            flex-wrap: wrap;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 35px;
         }
 
-        .pokemon-link {
-            font-size: 22px;
-            width: 25%;
-            height: 240px;
+        #load-more {
+            background: #e3350d;
+            color: white;
+            border: none;
+            padding: 14px 35px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        #load-more:hover {
+            background: #b92708;
+        }
+
+        #load-more:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
+
+        #end-message {
+            color: #777;
+            margin-top: 10px;
+        }
+
+        #error-message {
+            color: #d32f2f;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 480px) {
+            .pokemon-list {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 12px;
+            }
+
+            .pokemon-card {
+                padding: 12px;
+            }
+
+            .pokemon-image {
+                width: 110px;
+                height: 110px;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div class="pokemon-list">
+    <div class="container">
+
         <h1>My Pokédex</h1>
-        <div class="pokemon-link-container">
+
+        <div class="pokemon-list" id="pokemon-list">
             {{range .}}
-                <a class="pokemon-link" href="/pokemon/{{.ID}}">#{{.ID}} - {{.Name}}</a>
+                <a class="pokemon-card" href="/pokemon/{{.ID}}">
+                    <img
+                        class="pokemon-image"
+                        src="{{.Sprites.Other.OfficialArtwork.FrontDefault}}"
+                        alt="{{.Name}}"
+                        loading="lazy"
+                    >
+                    <span class="pokemon-id">#{{printf "%03d" .ID}}</span>
+                    <span class="pokemon-name">{{.Name}}</span>
+                </a>
             {{end}}
         </div>
+
+        <div class="load-more-container">
+            <button id="load-more">Load More Pokémon</button>
+
+            <p id="end-message" style="display: none;">
+                You've reached the end!
+            </p>
+
+            <p id="error-message" style="display: none;"></p>
+        </div>
+
     </div>
+
+    <script>
+        const pokemonList = document.getElementById("pokemon-list");
+        const loadMoreButton = document.getElementById("load-more");
+        const endMessage = document.getElementById("end-message");
+        const errorMessage = document.getElementById("error-message");
+
+        let offset = {{len .}};
+        const limit = 20;
+        let isLoading = false;
+
+        // Create and append a Pokémon card.
+        function renderPokemon(pokemon) {
+            const link = document.createElement("a");
+            link.className = "pokemon-card";
+            link.href = `/pokemon/${pokemon.id}`;
+
+            const image = document.createElement("img");
+            image.className = "pokemon-image";
+            image.src = pokemon.sprites?.other?.["official-artwork"]?.front_default || "";
+            image.alt = pokemon.name;
+            image.loading = "lazy";
+
+            const id = document.createElement("span");
+            id.className = "pokemon-id";
+            id.textContent = `#${String(pokemon.id).padStart(3, "0")}`;
+
+            const name = document.createElement("span");
+            name.className = "pokemon-name";
+            name.textContent = pokemon.name;
+
+            link.append(image, id, name);
+
+            pokemonList.appendChild(link);
+        }
+
+        // Fetch and render the next batch of Pokémon.
+        async function loadMorePokemon() {
+            if (isLoading) return;
+
+            isLoading = true;
+            loadMoreButton.disabled = true;
+            loadMoreButton.textContent = "Loading...";
+            errorMessage.style.display = "none";
+
+            try {
+                const response = await fetch(
+                    `/pokemon?limit=${limit}&offset=${offset}`
+                );
+
+                if (!response.ok) {
+                    throw new Error(`Request failed: ${response.status}`);
+                }
+
+                const pokemons = await response.json();
+
+                if (!Array.isArray(pokemons)) {
+                    throw new Error("Expected an array of Pokémon");
+                }
+
+                pokemons.forEach(renderPokemon);
+
+                offset += pokemons.length;
+
+                if (pokemons.length < limit) {
+                    loadMoreButton.style.display = "none";
+                    endMessage.style.display = "block";
+                }
+
+            } catch (error) {
+                console.error("Error loading Pokémon:", error);
+
+                errorMessage.textContent =
+                    "Could not load Pokémon. Please try again.";
+
+                errorMessage.style.display = "block";
+
+            } finally {
+                isLoading = false;
+
+                if (loadMoreButton.style.display !== "none") {
+                    loadMoreButton.disabled = false;
+                    loadMoreButton.textContent = "Load More Pokémon";
+                }
+            }
+        }
+
+        // Listen for button clicks.
+        loadMoreButton.addEventListener("click", loadMorePokemon);
+    </script>
 </body>
 
 </html>

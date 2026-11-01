@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/lefteriskaragiorgis/pokedex/internal/handler"
 	"github.com/lefteriskaragiorgis/pokedex/internal/pokemon"
@@ -15,6 +16,7 @@ func main() {
 	)
 
 	cache := pokemon.NewCache()
+	cache.StartCleanup(5 * time.Minute)
 
 	pokemonHandler := &handler.PokemonHandler{
 		Templates: templates,

@@ -11,7 +11,6 @@ import (
 )
 
 const pokeAPIURL = "https://pokeapi.co/api/v2/"
-const pokeAPIList = pokeAPIURL + "pokemon/"
 
 type PokemonsResponse struct {
 	Count    int            `json:"count"`
@@ -52,7 +51,7 @@ func FetchPokemons(
 	cache *Cache,
 ) ([]PokemonResponse, error) {
 
-	endpoint, err := url.Parse(pokeAPIList)
+	endpoint, err := url.Parse(pokeAPIURL + "pokemon/")
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +133,7 @@ func FetchPokemonByID(
 	fmt.Printf("Cache MISS: Pokémon %d\n", id)
 
 	// 2. Fetch from PokéAPI
-	endpoint := fmt.Sprintf("%s%d/", pokeAPIList, id)
+	endpoint := fmt.Sprintf("%s%d/", pokeAPIURL+"pokemon/", id)
 
 	req, err := http.NewRequestWithContext(
 		ctx, http.MethodGet, endpoint, nil,
