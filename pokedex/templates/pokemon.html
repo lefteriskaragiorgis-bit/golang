@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -5,6 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.Name}} - My Pokédex</title>
+    <meta name="referrer" content="no-referrer">
 
     <style>
         * {
@@ -45,14 +47,17 @@
         }
 
         .pokemon-image {
+            display: block;
             width: 180px;
-            height: 180px;
+            height: 240px;
+            margin: 0 auto;
             object-fit: contain;
         }
 
         .pokemon-types {
             display: flex;
             justify-content: center;
+            flex-wrap: wrap;
             gap: 8px;
             margin-top: 15px;
         }
@@ -68,11 +73,6 @@
         h2 {
             font-size: 18px;
             margin-bottom: 15px;
-        }
-        
-        .pokemon-image {
-            min-height: 240px;
-            max-height: 240px;
         }
 
         .pokemon-info {
@@ -92,6 +92,7 @@
             color: #888;
             font-size: 13px;
             margin-bottom: 6px;
+            text-transform: capitalize;
         }
 
         .stat-value {
@@ -99,12 +100,26 @@
             font-weight: bold;
         }
 
-        .back-link, .next-link, .prev-link {
+        .back-link,
+        .next-link,
+        .prev-link {
             display: block;
             margin-top: 25px;
             text-align: center;
             color: #2563eb;
             text-decoration: none;
+        }
+
+        .back-link:hover,
+        .next-link:hover,
+        .prev-link:hover {
+            text-decoration: underline;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
         }
     </style>
 </head>
@@ -118,11 +133,15 @@
 
             <h1 class="pokemon-name">{{.Name}}</h1>
 
-            <img class="pokemon-image" src="{{.Sprites.Other.OfficialArtwork.FrontDefault}}" alt="{{.Name}}">
+            <img
+                class="pokemon-image"
+                src="{{.Sprites.Other.OfficialArtwork.FrontDefault}}"
+                alt="{{.Name}}"
+            >
 
             <div class="pokemon-types">
-                {{range .Type}}
-                    <span class="type">{{.}}</span>
+                {{range .Types}}
+                    <span class="type">{{.Type.Name}}</span>
                 {{end}}
             </div>
         </div>
@@ -144,31 +163,26 @@
         <h2>Base Stats</h2>
 
         <div class="pokemon-info">
-            <div class="stat">
-                <span class="stat-label">HP</span>
-                <span class="stat-value">{{.HP}}</span>
-            </div>
-
-            <div class="stat">
-                <span class="stat-label">Attack</span>
-                <span class="stat-value">{{.Attack}}</span>
-            </div>
-
-            <div class="stat">
-                <span class="stat-label">Defense</span>
-                <span class="stat-value">{{.Defense}}</span>
-            </div>
+            {{range .Stats}}
+                <div class="stat">
+                    <span class="stat-label">{{.Stat.Name}}</span>
+                    <span class="stat-value">{{.BaseStat}}</span>
+                </div>
+            {{end}}
         </div>
 
         <a href="/pokemon" class="back-link">← Back to Pokédex</a>
-        
-        <div>
-            <a href="/pokemon/{{.NextID}}" class="next-link">→ Next Pokémon</a>
+
+        <div class="navigation">
             {{if gt .PrevID 0}}
                 <a href="/pokemon/{{.PrevID}}" class="prev-link">
                     ← Previous Pokémon
                 </a>
             {{end}}
+
+            <a href="/pokemon/{{.NextID}}" class="next-link">
+                Next Pokémon →
+            </a>
         </div>
 
     </div>

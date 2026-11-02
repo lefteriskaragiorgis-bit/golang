@@ -10,7 +10,12 @@ import (
 	"strings"
 )
 
-const pokeAPIURL = "https://pokeapi.co/api/v2/"
+const pokeAPIURL = "https://pokeapi.co/api/v2"
+
+type APIClient struct {
+	BaseURL    string
+	HTTPClient *http.Client
+}
 
 type PokemonsResponse struct {
 	Count    int            `json:"count"`
@@ -25,33 +30,67 @@ type PokeAPIEntry struct {
 }
 
 type PokemonResponse struct {
-	ID      int      `json:"id"`
-	Name    string   `json:"name"`
-	Type    []string `json:"type"`
-	Height  int      `json:"height"`
-	Weight  int      `json:"weight"`
-	HP      int      `json:"hp"`
-	Attack  int      `json:"attack"`
-	Defense int      `json:"defense"`
-	NextID  int      `json:"-"`
-	PrevID  int      `json:"-"`
+	ID     int    `json:"id"`
+	Name   string `json:"name"`
+	Height int    `json:"height"`
+	Weight int    `json:"weight"`
+	NextID int    `json:"-"`
+	PrevID int    `json:"-"`
 
-	Sprites struct {
-		Other struct {
-			OfficialArtwork struct {
-				FrontDefault string `json:"front_default"`
-			} `json:"official-artwork"`
-		} `json:"other"`
-	} `json:"sprites"`
+	Types   []PokemonType  `json:"types"`
+	Stats   []PokemonStat  `json:"stats"`
+	Sprites PokemonSprites `json:"sprites"`
 }
 
-func FetchPokemons(
+type PokemonType struct {
+	Slot int              `json:"slot"`
+	Type NamedAPIResource `json:"type"`
+}
+
+type PokemonStat struct {
+	BaseStat int              `json:"base_stat"`
+	Effort   int              `json:"effort"`
+	Stat     NamedAPIResource `json:"stat"`
+}
+
+type NamedAPIResource struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
+
+type PokemonSprites struct {
+	Other struct {
+		OfficialArtwork struct {
+			FrontDefault string `json:"front_default"`
+		} `json:"official-artwork"`
+	} `json:"other"`
+}
+
+func NewAPIClient() *APIClient {
+	return &APIClient{
+		BaseURL:    pokeAPIURL,
+		HTTPClient: http.DefaultClient,
+	}
+}
+
+func (c *APIClient) httpClient() *http.Client {
+	if c.HTTPClient != nil {
+		return c.HTTPClient
+	}
+
+	return http.DefaultClient
+}
+
+func (c *APIClient) pokemonURL(path string) string {
+	return strings.TrimRight(c.BaseURL, "/") + "/pokemon/" + path
+}
+
+func (c *APIClient) FetchPokemons(
 	ctx context.Context,
 	limit, offset int,
 	cache *Cache,
 ) ([]PokemonResponse, error) {
-
-	endpoint, err := url.Parse(pokeAPIURL + "pokemon/")
+	endpoint, err := url.Parse(c.pokemonURL(""))
 	if err != nil {
 		return nil, err
 	}
@@ -68,20 +107,17 @@ func FetchPokemons(
 		return nil, err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := c.httpClient().Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf(
-			"pokeAPI returned status %d", resp.StatusCode,
-		)
+		return nil, fmt.Errorf("pokeAPI returned status %d", resp.StatusCode)
 	}
 
 	var apiResponse PokemonsResponse
-
 	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
 		return nil, err
 	}
@@ -94,16 +130,103 @@ func FetchPokemons(
 			return nil, err
 		}
 
-		// Reuse the individual Pokémon fetching function.
-		pokemon, err := FetchPokemonByID(ctx, id, cache)
+		p, err := c.FetchPokemonByID(ctx, id, cache)
 		if err != nil {
 			return nil, err
 		}
 
-		pokemons = append(pokemons, pokemon)
+		pokemons = append(pokemons, p)
 	}
 
 	return pokemons, nil
+}
+
+func (c *APIClient) FetchPokemonByID(
+	ctx context.Context,
+	id int,
+	cache *Cache,
+) (PokemonResponse, error) {
+	if cachedPokemon, exists := cache.Get(id); exists {
+		fmt.Printf("Cache HIT: Pokémon %d\n", id)
+		return cachedPokemon, nil
+	}
+
+	fmt.Printf("Cache MISS: Pokémon %d\n", id)
+
+	endpoint := c.pokemonURL(strconv.Itoa(id) + "/")
+
+	p, err := c.fetchPokemon(ctx, endpoint)
+	if err != nil {
+		return PokemonResponse{}, err
+	}
+
+	p.NextID = id + 1
+	if id > 1 {
+		p.PrevID = id - 1
+	}
+
+	cache.Set(id, p)
+
+	return p, nil
+}
+
+func (c *APIClient) FetchPokemonByName(
+	ctx context.Context,
+	name string,
+	cache *Cache,
+) (PokemonResponse, error) {
+	name = strings.ToLower(strings.TrimSpace(name))
+
+	if name == "" {
+		return PokemonResponse{}, fmt.Errorf("pokemon name cannot be empty")
+	}
+
+	endpoint := c.pokemonURL(url.PathEscape(name) + "/")
+
+	p, err := c.fetchPokemon(ctx, endpoint)
+	if err != nil {
+		return PokemonResponse{}, err
+	}
+
+	p.NextID = p.ID + 1
+	if p.ID > 1 {
+		p.PrevID = p.ID - 1
+	}
+
+	cache.Set(p.ID, p)
+
+	return p, nil
+}
+
+func (c *APIClient) fetchPokemon(
+	ctx context.Context,
+	endpoint string,
+) (PokemonResponse, error) {
+	req, err := http.NewRequestWithContext(
+		ctx, http.MethodGet, endpoint, nil,
+	)
+	if err != nil {
+		return PokemonResponse{}, err
+	}
+
+	resp, err := c.httpClient().Do(req)
+	if err != nil {
+		return PokemonResponse{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return PokemonResponse{}, fmt.Errorf(
+			"pokeAPI returned status %d", resp.StatusCode,
+		)
+	}
+
+	var p PokemonResponse
+	if err := json.NewDecoder(resp.Body).Decode(&p); err != nil {
+		return PokemonResponse{}, err
+	}
+
+	return p, nil
 }
 
 func pokemonIDFromURL(rawURL string) (int, error) {
@@ -116,101 +239,4 @@ func pokemonIDFromURL(rawURL string) (int, error) {
 	}
 
 	return id, nil
-}
-
-func FetchPokemonByID(
-	ctx context.Context,
-	id int,
-	cache *Cache,
-) (PokemonResponse, error) {
-
-	// 1. Check cache
-	if cachedPokemon, exists := cache.Get(id); exists {
-		fmt.Printf("Cache HIT: Pokémon %d\n", id)
-		return cachedPokemon, nil
-	}
-
-	fmt.Printf("Cache MISS: Pokémon %d\n", id)
-
-	// 2. Fetch from PokéAPI
-	endpoint := fmt.Sprintf("%s%d/", pokeAPIURL+"pokemon/", id)
-
-	req, err := http.NewRequestWithContext(
-		ctx, http.MethodGet, endpoint, nil,
-	)
-	if err != nil {
-		return PokemonResponse{}, err
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return PokemonResponse{}, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return PokemonResponse{}, fmt.Errorf(
-			"pokeAPI returned status %d", resp.StatusCode,
-		)
-	}
-
-	var apiResponse PokemonResponse
-
-	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
-		return PokemonResponse{}, err
-	}
-
-	// 3. Calculate navigation IDs
-	apiResponse.NextID = id + 1
-	if id > 1 {
-		apiResponse.PrevID = id - 1
-	}
-
-	// 4. Store in cache
-	cache.Set(id, apiResponse)
-
-	return apiResponse, nil
-}
-
-func FetchPokemonByName(
-	ctx context.Context,
-	name string,
-	cache *Cache,
-) (PokemonResponse, error) {
-	name = strings.ToLower(strings.TrimSpace(name))
-
-	if name == "" {
-		return PokemonResponse{}, fmt.Errorf("pokemon name cannot be empty")
-	}
-
-	endpoint := fmt.Sprintf("%s%s/", pokeAPIURL+"pokemon/", url.PathEscape(name))
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-	if err != nil {
-		return PokemonResponse{}, err
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return PokemonResponse{}, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return PokemonResponse{}, fmt.Errorf("pokeAPI returned status %d", resp.StatusCode)
-	}
-
-	var apiResponse PokemonResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
-		return PokemonResponse{}, err
-	}
-
-	apiResponse.NextID = apiResponse.ID + 1
-	if apiResponse.ID > 1 {
-		apiResponse.PrevID = apiResponse.ID - 1
-	}
-
-	cache.Set(apiResponse.ID, apiResponse)
-
-	return apiResponse, nil
 }

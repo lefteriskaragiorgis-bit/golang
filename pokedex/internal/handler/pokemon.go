@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -19,6 +20,7 @@ const (
 type PokemonHandler struct {
 	Templates *template.Template
 	Cache     *pokemon.Cache
+	API       *pokemon.APIClient
 }
 
 func (h *PokemonHandler) Index(w http.ResponseWriter, r *http.Request) {
@@ -28,9 +30,13 @@ func (h *PokemonHandler) Index(w http.ResponseWriter, r *http.Request) {
 func (h *PokemonHandler) List(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Received request: %s %s", r.Method, r.URL.String())
 
-	limit, offset := h.parseListQueryParams(w, r)
+	limit, offset, err := parseListQueryParams(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-	pokemons, err := pokemon.FetchPokemons(r.Context(), limit, offset, h.Cache)
+	pokemons, err := h.API.FetchPokemons(r.Context(), limit, offset, h.Cache)
 	if err != nil {
 		http.Error(w, "Could not retrieve Pokémon", http.StatusInternalServerError)
 		return
@@ -44,9 +50,13 @@ func (h *PokemonHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *PokemonHandler) ListJSON(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Received request: %s %s", r.Method, r.URL.String())
 
-	limit, offset := h.parseListQueryParams(w, r)
+	limit, offset, err := parseListQueryParams(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-	pokemons, err := pokemon.FetchPokemons(r.Context(), limit, offset, h.Cache)
+	pokemons, err := h.API.FetchPokemons(r.Context(), limit, offset, h.Cache)
 	if err != nil {
 		http.Error(w, "Could not retrieve Pokémon", http.StatusInternalServerError)
 		return
@@ -59,14 +69,13 @@ func (h *PokemonHandler) ListJSON(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *PokemonHandler) parseListQueryParams(w http.ResponseWriter, r *http.Request) (int, int) {
+func parseListQueryParams(r *http.Request) (int, int, error) {
 	limit, offset := defaultLimit, 0
 
 	if value := r.URL.Query().Get("limit"); value != "" {
 		parsed, err := strconv.Atoi(value)
 		if err != nil || parsed < 1 || parsed > maxLimit {
-			http.Error(w, "Invalid limit", http.StatusBadRequest)
-			return limit, offset
+			return 0, 0, fmt.Errorf("invalid limit")
 		}
 		limit = parsed
 	}
@@ -74,13 +83,12 @@ func (h *PokemonHandler) parseListQueryParams(w http.ResponseWriter, r *http.Req
 	if value := r.URL.Query().Get("offset"); value != "" {
 		parsed, err := strconv.Atoi(value)
 		if err != nil || parsed < 0 {
-			http.Error(w, "Invalid offset", http.StatusBadRequest)
-			return limit, offset
+			return 0, 0, fmt.Errorf("invalid offset")
 		}
 		offset = parsed
 	}
 
-	return limit, offset
+	return limit, offset, nil
 }
 
 func (h *PokemonHandler) GetByID(w http.ResponseWriter, r *http.Request) {
@@ -95,7 +103,7 @@ func (h *PokemonHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch Pokémon from PokéAPI
-	pokemons, err := pokemon.FetchPokemonByID(r.Context(), pokemonID, h.Cache)
+	pokemons, err := h.API.FetchPokemonByID(r.Context(), pokemonID, h.Cache)
 	if err != nil {
 		http.Error(w, "Could not retrieve Pokémon", http.StatusInternalServerError)
 		return
@@ -116,7 +124,7 @@ func (h *PokemonHandler) Search(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pokemon, err := pokemon.FetchPokemonByName(r.Context(), name, h.Cache)
+	pokemon, err := h.API.FetchPokemonByName(r.Context(), name, h.Cache)
 	if err != nil {
 		http.Error(w, "Pokemon not found", http.StatusNotFound)
 		return

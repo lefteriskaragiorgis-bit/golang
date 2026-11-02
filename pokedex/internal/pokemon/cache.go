@@ -6,8 +6,9 @@ import (
 )
 
 const (
-	DefaultCacheTTL      = time.Hour
-	DefaultMaxCacheItems = 500
+	DefaultCacheTTL        = time.Hour
+	DefaultMaxCacheItems   = 500
+	DefaultCleanupInterval = 5 * time.Minute
 )
 
 type cacheItem struct {
@@ -23,19 +24,19 @@ type Cache struct {
 }
 
 func NewCache() *Cache {
-	return &Cache{
-		items:    make(map[int]cacheItem),
-		ttl:      DefaultCacheTTL,
-		maxItems: DefaultMaxCacheItems,
-	}
+	return NewCacheWithConfig(DefaultCacheTTL, DefaultMaxCacheItems, DefaultCleanupInterval)
 }
 
-func NewCacheWithConfig(ttl time.Duration, maxItems int) *Cache {
-	return &Cache{
+func NewCacheWithConfig(ttl time.Duration, maxItems int, cleanupInterval time.Duration) *Cache {
+	cache := &Cache{
 		items:    make(map[int]cacheItem),
 		ttl:      ttl,
 		maxItems: maxItems,
 	}
+
+	cache.StartCleanup(cleanupInterval)
+
+	return cache
 }
 
 func (c *Cache) Get(id int) (PokemonResponse, bool) {
