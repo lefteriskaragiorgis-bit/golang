@@ -147,7 +147,7 @@
         <div id="search-results"></div>
         <p id="search-error" role="alert"></p>
 
-        <div class="pokemon-list" id="pokemon-list">
+        <div class="pokemon-list" id="pokemon-list" data-count="{{len .}}">
             {{range .}}
                 <a class="pokemon-card" href="/pokemon/{{.ID}}">
                     <img
@@ -174,7 +174,7 @@
 
     </div>
 
-    <!-- <script>
+    <script>
         const pokemonList = document.getElementById("pokemon-list");
         const loadMoreButton = document.getElementById("load-more");
         const endMessage = document.getElementById("end-message");
@@ -185,7 +185,7 @@
         const searchError = document.getElementById("search-error");
 
         
-        let offset = {{len .}};
+        let offset = Number(pokemonList.dataset.count);
         const limit = 20;
         let isLoading = false;
 
@@ -296,7 +296,7 @@
                 searchError.textContent = error.message;
             }
         });
-    </script> -->
+    </script>
 </body>
 
 </html>

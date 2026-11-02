@@ -102,14 +102,12 @@ func (h *PokemonHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch Pokémon from PokéAPI
 	pokemons, err := h.API.FetchPokemonByID(r.Context(), pokemonID, h.Cache)
 	if err != nil {
 		http.Error(w, "Could not retrieve Pokémon", http.StatusInternalServerError)
 		return
 	}
 
-	// Render HTML template
 	err = h.Templates.ExecuteTemplate(w, "pokemon.html", pokemons)
 	if err != nil {
 		http.Error(w, "Could not render page", http.StatusInternalServerError)
