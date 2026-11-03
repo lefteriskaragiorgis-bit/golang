@@ -43,7 +43,7 @@ func (h *PokemonHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Templates.ExecuteTemplate(w, "index.html", pokemons); err != nil {
-		log.Printf("Could not render page: %v", err)
+		http.Error(w, "Could not render page", http.StatusInternalServerError)
 	}
 }
 

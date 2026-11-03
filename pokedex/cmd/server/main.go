@@ -11,13 +11,11 @@ import (
 
 func main() {
 	templates := template.Must(template.ParseGlob("templates/*.html"))
-	cache := pokemon.NewCache()
-	apiClient := pokemon.NewAPIClient()
 
 	pokemonHandler := &handler.PokemonHandler{
 		Templates: templates,
-		Cache:     cache,
-		API:       apiClient,
+		Cache:     pokemon.NewCache(),
+		API:       pokemon.NewAPIClient(),
 	}
 
 	mux := http.NewServeMux()
