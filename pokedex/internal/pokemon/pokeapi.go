@@ -146,12 +146,14 @@ func (c *APIClient) FetchPokemonByID(
 	id int,
 	cache *Cache,
 ) (PokemonResponse, error) {
-	if cachedPokemon, exists := cache.Get(id); exists {
-		fmt.Printf("Cache HIT: Pokémon %d\n", id)
-		return cachedPokemon, nil
-	}
+	if cache != nil {
+		if cachedPokemon, exists := cache.Get(id); exists {
+			fmt.Printf("Cache HIT: Pokémon %d\n", id)
+			return cachedPokemon, nil
+		}
 
-	fmt.Printf("Cache MISS: Pokémon %d\n", id)
+		fmt.Printf("Cache MISS: Pokémon %d\n", id)
+	}
 
 	endpoint := c.pokemonURL(strconv.Itoa(id) + "/")
 
@@ -164,8 +166,9 @@ func (c *APIClient) FetchPokemonByID(
 	if id > 1 {
 		p.PrevID = id - 1
 	}
-
-	cache.Set(id, p)
+	if cache != nil {
+		cache.Set(id, p)
+	}
 
 	return p, nil
 }

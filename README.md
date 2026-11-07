@@ -4,7 +4,4 @@
 
 This repository is used to learn the basics of Golang
 
-
-To run tests with docs and name use:
-
-go run github.com/bitfield/gotestdox/cmd/gotestdox@latest
+TODO: implement a Util to fetch all pokemons and store as JSON files. Pokemon count is less than 1500, 
