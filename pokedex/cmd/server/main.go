@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/lefteriskaragiorgis/pokedex/internal/handler"
-	"github.com/lefteriskaragiorgis/pokedex/internal/pokemon"
+	"github.com/lefteriskaragiorgis-bit/golang/internal/handler"
+	"github.com/lefteriskaragiorgis-bit/golang/internal/pokemon"
 )
 
 func main() {

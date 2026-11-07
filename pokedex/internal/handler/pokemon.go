@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/lefteriskaragiorgis/pokedex/internal/pokemon"
+	"github.com/lefteriskaragiorgis-bit/golang/internal/pokemon"
 )
 
 const (

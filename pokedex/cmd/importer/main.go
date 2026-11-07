@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
-	"github.com/lefteriskaragiorgis/pokedex/internal/importer"
-	"github.com/lefteriskaragiorgis/pokedex/internal/pokemon"
+	"github.com/lefteriskaragiorgis-bit/golang/internal/importer"
+	"github.com/lefteriskaragiorgis-bit/golang/internal/pokemon"
 )
 
 func main() {

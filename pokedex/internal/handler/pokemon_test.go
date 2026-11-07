@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/lefteriskaragiorgis/pokedex/internal/pokemon"
+	"github.com/lefteriskaragiorgis-bit/golang/internal/pokemon"
 )
 
 func TestSearch(t *testing.T) {

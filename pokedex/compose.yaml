@@ -1,0 +1,17 @@
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: pokedex-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:?DB_NAME is required}
+      POSTGRES_USER: ${DB_USER:?DB_USER is required}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+volumes:
+  postgres_data:
