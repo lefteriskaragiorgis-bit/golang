@@ -45,10 +45,7 @@ CREATE TABLE pokemon_stats (
 -- Pokémon artwork and sprite URLs
 CREATE TABLE pokemon_sprites (
     pokemon_id INTEGER PRIMARY KEY REFERENCES pokemon(id) ON DELETE CASCADE,
-    front_default TEXT,
-    front_shiny TEXT,
-    official_artwork TEXT,
-    home_artwork TEXT
+    official_artwork TEXT
 );
 
 -- Useful indexes for filtering and relationships

@@ -68,7 +68,6 @@ func (p *PokemonSeeder) SeedPokemon(ctx context.Context, inputPath string) error
 	}
 	defer statStmt.Close()
 
-	// Only official_artwork is seeded; the other sprite columns are left untouched.
 	spriteStmt, err := tx.PrepareContext(ctx, `
 		INSERT INTO pokemon_sprites (pokemon_id, official_artwork)
 		VALUES ($1, $2)

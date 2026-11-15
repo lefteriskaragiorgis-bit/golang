@@ -7,6 +7,8 @@ import (
 	"net"
 	"net/url"
 
+	_ "github.com/lib/pq"
+
 	"github.com/lefteriskaragiorgis-bit/golang/internal/config"
 	"github.com/lefteriskaragiorgis-bit/golang/internal/seeder"
 )
