@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 
 	"github.com/lefteriskaragiorgis-bit/golang/internal/pokemon"
 )
@@ -150,7 +151,7 @@ func (r *PokemonRepository) List(
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-
+	fmt.Printf("Found %d Pokémon\n", len(pokemons))
 	return pokemons, nil
 }
 

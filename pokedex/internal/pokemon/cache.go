@@ -11,27 +11,51 @@ const (
 	DefaultCleanupInterval = 5 * time.Minute
 )
 
-type cacheItem struct {
-	pokemon   Pokemon
+type Cache[V any] struct {
+	mu       sync.RWMutex
+	items    map[string]cacheItem[V]
+	ttl      time.Duration
+	maxItems int
+
+	stop     chan struct{}
+	stopOnce sync.Once
+}
+
+type cacheItem[V any] struct {
+	value     V
 	expiresAt time.Time
 }
 
-type Cache struct {
-	mu       sync.RWMutex
-	items    map[int]cacheItem
-	ttl      time.Duration
-	maxItems int
+func NewCache[V any]() *Cache[V] {
+	return NewCacheWithConfig[V](
+		DefaultCacheTTL,
+		DefaultMaxCacheItems,
+		DefaultCleanupInterval,
+	)
 }
 
-func NewCache() *Cache {
-	return NewCacheWithConfig(DefaultCacheTTL, DefaultMaxCacheItems, DefaultCleanupInterval)
-}
+func NewCacheWithConfig[V any](
+	ttl time.Duration,
+	maxItems int,
+	cleanupInterval time.Duration,
+) *Cache[V] {
+	if ttl <= 0 {
+		ttl = DefaultCacheTTL
+	}
 
-func NewCacheWithConfig(ttl time.Duration, maxItems int, cleanupInterval time.Duration) *Cache {
-	cache := &Cache{
-		items:    make(map[int]cacheItem),
+	if maxItems <= 0 {
+		maxItems = DefaultMaxCacheItems
+	}
+
+	if cleanupInterval <= 0 {
+		cleanupInterval = DefaultCleanupInterval
+	}
+
+	cache := &Cache[V]{
+		items:    make(map[string]cacheItem[V]),
 		ttl:      ttl,
 		maxItems: maxItems,
+		stop:     make(chan struct{}),
 	}
 
 	cache.StartCleanup(cleanupInterval)
@@ -39,76 +63,102 @@ func NewCacheWithConfig(ttl time.Duration, maxItems int, cleanupInterval time.Du
 	return cache
 }
 
-func (c *Cache) Get(id int) (Pokemon, bool) {
+func (c *Cache[V]) Get(key string) (V, bool) {
 	c.mu.RLock()
-	item, exists := c.items[id]
+	item, exists := c.items[key]
 	c.mu.RUnlock()
 
 	if !exists {
-		return Pokemon{}, false
+		var zero V
+		return zero, false
 	}
 
 	if time.Now().After(item.expiresAt) {
 		c.mu.Lock()
+
 		// Check again because another request may have refreshed it.
-		if current, ok := c.items[id]; ok &&
+		if current, ok := c.items[key]; ok &&
 			current.expiresAt.Equal(item.expiresAt) {
-			delete(c.items, id)
+			delete(c.items, key)
 		}
+
 		c.mu.Unlock()
 
-		return Pokemon{}, false
+		var zero V
+		return zero, false
 	}
 
-	return item.pokemon, true
+	return item.value, true
 }
 
-func (c *Cache) Set(id int, pokemon Pokemon) {
+func (c *Cache[V]) Set(key string, value V) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	// Remove expired entries before inserting.
 	now := time.Now()
+
+	// Remove expired entries before inserting.
+	for existingKey, item := range c.items {
+		if now.After(item.expiresAt) {
+			delete(c.items, existingKey)
+		}
+	}
+
+	// Simple eviction: remove an arbitrary entry when full.
+	if _, exists := c.items[key]; !exists &&
+		len(c.items) >= c.maxItems {
+		for existingKey := range c.items {
+			delete(c.items, existingKey)
+			break
+		}
+	}
+
+	c.items[key] = cacheItem[V]{
+		value:     value,
+		expiresAt: now.Add(c.ttl),
+	}
+}
+
+func (c *Cache[V]) Delete(key string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	delete(c.items, key)
+}
+
+func (c *Cache[V]) cleanup() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	now := time.Now()
+
 	for key, item := range c.items {
 		if now.After(item.expiresAt) {
 			delete(c.items, key)
 		}
 	}
-
-	// Simple eviction: remove an arbitrary entry when full.
-	if _, exists := c.items[id]; !exists &&
-		len(c.items) >= c.maxItems {
-		for key := range c.items {
-			delete(c.items, key)
-			break
-		}
-	}
-
-	c.items[id] = cacheItem{
-		pokemon:   pokemon,
-		expiresAt: now.Add(c.ttl),
-	}
 }
 
-func (c *Cache) cleanup() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	now := time.Now()
-
-	for id, item := range c.items {
-		if now.After(item.expiresAt) {
-			delete(c.items, id)
-		}
-	}
-}
-
-func (c *Cache) StartCleanup(interval time.Duration) {
+func (c *Cache[V]) StartCleanup(interval time.Duration) {
 	ticker := time.NewTicker(interval)
 
 	go func() {
-		for range ticker.C {
-			c.cleanup()
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				c.cleanup()
+
+			case <-c.stop:
+				return
+			}
 		}
 	}()
+}
+
+func (c *Cache[V]) Close() {
+	c.stopOnce.Do(func() {
+		close(c.stop)
+	})
 }

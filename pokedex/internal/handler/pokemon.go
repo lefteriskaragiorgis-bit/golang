@@ -35,7 +35,7 @@ func (h *PokemonHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pokemons, err := h.Service.GetPokemons(r.Context(), limit, offset)
+	pokemons, err := h.Service.List(r.Context(), limit, offset)
 	if err != nil {
 		http.Error(w, "Could not retrieve Pokémon", http.StatusInternalServerError)
 		return
@@ -55,7 +55,7 @@ func (h *PokemonHandler) ListJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pokemons, err := h.Service.GetPokemons(r.Context(), limit, offset)
+	pokemons, err := h.Service.List(r.Context(), limit, offset)
 	if err != nil {
 		http.Error(w, "Could not retrieve Pokémon", http.StatusInternalServerError)
 		return

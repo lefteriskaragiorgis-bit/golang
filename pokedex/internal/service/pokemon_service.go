@@ -10,30 +10,25 @@ import (
 )
 
 type PokemonService struct {
-	Repository *repository.PokemonRepository
-	Cache      *pokemon.Cache
+	Repository  *repository.PokemonRepository
+	DetailCache *pokemon.Cache[pokemon.Pokemon]
+	ListCache   *pokemon.Cache[[]pokemon.PokemonListItem]
 }
 
-func (s *PokemonService) GetPokemons(
+func (s *PokemonService) List(
 	ctx context.Context,
-	limit, offset int,
-) ([]pokemon.Pokemons, error) {
-	results, err := s.Repository.List(ctx, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-
-	pokemons := make([]pokemon.Pokemons, 0, len(results))
-
-	return pokemons, nil
+	limit int,
+	offset int,
+) ([]pokemon.PokemonListItem, error) {
+	return s.Repository.List(ctx, limit, offset)
 }
 
 func (s *PokemonService) GetByID(
 	ctx context.Context,
 	id int,
 ) (pokemon.Pokemon, error) {
-	if s.Cache != nil {
-		if cachedPokemon, exists := s.Cache.Get(id); exists {
+	if s.DetailCache != nil {
+		if cachedPokemon, exists := s.DetailCache.Get(fmt.Sprintf("%d", id)); exists {
 			fmt.Printf("Cache HIT: Pokémon %d\n", id)
 			return cachedPokemon, nil
 		}
@@ -50,8 +45,8 @@ func (s *PokemonService) GetByID(
 	if id > 1 {
 		p.PrevID = id - 1
 	}
-	if s.Cache != nil {
-		s.Cache.Set(id, *p)
+	if s.DetailCache != nil {
+		s.DetailCache.Set(fmt.Sprintf("%d", id), *p)
 	}
 
 	return *p, nil
@@ -77,8 +72,8 @@ func (s *PokemonService) GetPokemonByName(
 		p.PrevID = p.ID - 1
 	}
 
-	if s.Cache != nil {
-		s.Cache.Set(p.ID, *p)
+	if s.DetailCache != nil {
+		s.DetailCache.Set(fmt.Sprintf("%d", p.ID), *p)
 	}
 
 	return *p, nil

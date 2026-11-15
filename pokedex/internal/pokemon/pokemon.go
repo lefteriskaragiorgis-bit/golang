@@ -1,10 +1,10 @@
 package pokemon
 
 type Pokemons struct {
-	Count    int            `json:"count"`
-	Next     string         `json:"next"`
-	Previous string         `json:"previous"`
-	Results  []PokemonEntry `json:"results"`
+	Count    int               `json:"count"`
+	Next     string            `json:"next"`
+	Previous string            `json:"previous"`
+	Results  []PokemonListItem `json:"results"`
 }
 
 type PokemonEntry struct {

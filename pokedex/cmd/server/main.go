@@ -21,10 +21,14 @@ func main() {
 	}
 	defer db.Close()
 
+	detailCache := pokemon.NewCache[pokemon.Pokemon]()
+	listCache := pokemon.NewCache[[]pokemon.PokemonListItem]()
+	defer detailCache.Close()
+	defer listCache.Close()
+
 	templates := template.Must(template.ParseGlob("templates/*.html"))
-	cache := pokemon.NewCache()
 	repository := &repository.PokemonRepository{DB: db}
-	service := &service.PokemonService{Repository: repository, Cache: cache}
+	service := &service.PokemonService{Repository: repository, DetailCache: detailCache, ListCache: listCache}
 
 	pokemonHandler := &handler.PokemonHandler{
 		Templates: templates,

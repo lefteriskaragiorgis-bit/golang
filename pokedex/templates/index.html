@@ -152,7 +152,7 @@
                 <a class="pokemon-card" href="/pokemon/{{.ID}}">
                     <img
                         class="pokemon-image"
-                        src="{{.Sprites.Other.OfficialArtwork.FrontDefault}}"
+                        src="{{.ImageURL}}"
                         alt="{{.Name}}"
                         loading="lazy"
                     >
@@ -197,7 +197,7 @@
 
             const image = document.createElement("img");
             image.className = "pokemon-image";
-            image.src = pokemon.sprites?.other?.["official-artwork"]?.front_default || "";
+            image.src = pokemon.image_url  || "";
             image.alt = pokemon.name;
             image.loading = "lazy";
 
