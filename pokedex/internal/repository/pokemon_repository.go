@@ -112,25 +112,35 @@ func (r *PokemonRepository) FindByID(
 	return &p, nil
 }
 
-func (r *PokemonRepository) GetPokemons(ctx context.Context, limit, offset int) ([]pokemon.Pokemon, error) {
-	rows, err := r.DB.QueryContext(ctx,
-		`SELECT id, name, height, weight
-         FROM pokemon
-         ORDER BY id
-         LIMIT $1 OFFSET $2`,
-		limit, offset,
-	)
+func (r *PokemonRepository) List(
+	ctx context.Context,
+	limit int,
+	offset int,
+) ([]pokemon.PokemonListItem, error) {
+	const query = `
+        SELECT
+            p.id,
+            p.name,
+            COALESCE(ps.official_artwork, '') AS image_url
+        FROM pokemon p
+        LEFT JOIN pokemon_sprites ps
+            ON ps.pokemon_id = p.id
+        ORDER BY p.id
+        LIMIT $1 OFFSET $2
+    `
+
+	rows, err := r.DB.QueryContext(ctx, query, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	pokemons := make([]pokemon.Pokemon, 0)
+	pokemons := make([]pokemon.PokemonListItem, 0, limit)
 
 	for rows.Next() {
-		var p pokemon.Pokemon
+		var p pokemon.PokemonListItem
 
-		if err := rows.Scan(&p.ID, &p.Name, &p.Height, &p.Weight); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.ImageURL); err != nil {
 			return nil, err
 		}
 

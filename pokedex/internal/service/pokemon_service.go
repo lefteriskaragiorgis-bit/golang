@@ -11,14 +11,14 @@ import (
 
 type PokemonService struct {
 	Repository *repository.PokemonRepository
+	Cache      *pokemon.Cache
 }
 
 func (s *PokemonService) GetPokemons(
 	ctx context.Context,
 	limit, offset int,
-	cache *pokemon.Cache,
 ) ([]pokemon.Pokemons, error) {
-	results, err := s.Repository.GetPokemons(ctx, limit, offset)
+	results, err := s.Repository.List(ctx, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -31,10 +31,9 @@ func (s *PokemonService) GetPokemons(
 func (s *PokemonService) GetByID(
 	ctx context.Context,
 	id int,
-	cache *pokemon.Cache,
 ) (pokemon.Pokemon, error) {
-	if cache != nil {
-		if cachedPokemon, exists := cache.Get(id); exists {
+	if s.Cache != nil {
+		if cachedPokemon, exists := s.Cache.Get(id); exists {
 			fmt.Printf("Cache HIT: Pokémon %d\n", id)
 			return cachedPokemon, nil
 		}
@@ -51,8 +50,8 @@ func (s *PokemonService) GetByID(
 	if id > 1 {
 		p.PrevID = id - 1
 	}
-	if cache != nil {
-		cache.Set(id, *p)
+	if s.Cache != nil {
+		s.Cache.Set(id, *p)
 	}
 
 	return *p, nil
@@ -61,7 +60,6 @@ func (s *PokemonService) GetByID(
 func (s *PokemonService) GetPokemonByName(
 	ctx context.Context,
 	name string,
-	cache *pokemon.Cache,
 ) (pokemon.Pokemon, error) {
 	name = strings.ToLower(strings.TrimSpace(name))
 
@@ -79,7 +77,9 @@ func (s *PokemonService) GetPokemonByName(
 		p.PrevID = p.ID - 1
 	}
 
-	cache.Set(p.ID, *p)
+	if s.Cache != nil {
+		s.Cache.Set(p.ID, *p)
+	}
 
 	return *p, nil
 }

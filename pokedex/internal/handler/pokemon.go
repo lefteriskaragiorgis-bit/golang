@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/lefteriskaragiorgis-bit/golang/internal/pokemon"
 	"github.com/lefteriskaragiorgis-bit/golang/internal/service"
 )
 
@@ -20,7 +19,6 @@ const (
 
 type PokemonHandler struct {
 	Templates *template.Template
-	Cache     *pokemon.Cache
 	Service   *service.PokemonService
 }
 
@@ -37,7 +35,7 @@ func (h *PokemonHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pokemons, err := h.Service.GetPokemons(r.Context(), limit, offset, h.Cache)
+	pokemons, err := h.Service.GetPokemons(r.Context(), limit, offset)
 	if err != nil {
 		http.Error(w, "Could not retrieve Pokémon", http.StatusInternalServerError)
 		return
@@ -57,7 +55,7 @@ func (h *PokemonHandler) ListJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pokemons, err := h.Service.GetPokemons(r.Context(), limit, offset, h.Cache)
+	pokemons, err := h.Service.GetPokemons(r.Context(), limit, offset)
 	if err != nil {
 		http.Error(w, "Could not retrieve Pokémon", http.StatusInternalServerError)
 		return
@@ -103,7 +101,7 @@ func (h *PokemonHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pokemon, err := h.Service.GetByID(r.Context(), pokemonID, h.Cache)
+	pokemon, err := h.Service.GetByID(r.Context(), pokemonID)
 	if err != nil {
 		log.Printf("Error handling fetch: %s %s", err, r.URL.String())
 		http.Error(w, "Could not retrieve Pokémon", http.StatusInternalServerError)
@@ -125,7 +123,7 @@ func (h *PokemonHandler) Search(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pokemon, err := h.Service.GetPokemonByName(r.Context(), name, h.Cache)
+	pokemon, err := h.Service.GetPokemonByName(r.Context(), name)
 	if err != nil {
 		http.Error(w, "Pokemon not found", http.StatusNotFound)
 		return
