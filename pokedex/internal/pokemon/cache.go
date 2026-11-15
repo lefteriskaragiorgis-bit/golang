@@ -12,7 +12,7 @@ const (
 )
 
 type cacheItem struct {
-	pokemon   PokemonResponse
+	pokemon   Pokemon
 	expiresAt time.Time
 }
 
@@ -39,13 +39,13 @@ func NewCacheWithConfig(ttl time.Duration, maxItems int, cleanupInterval time.Du
 	return cache
 }
 
-func (c *Cache) Get(id int) (PokemonResponse, bool) {
+func (c *Cache) Get(id int) (Pokemon, bool) {
 	c.mu.RLock()
 	item, exists := c.items[id]
 	c.mu.RUnlock()
 
 	if !exists {
-		return PokemonResponse{}, false
+		return Pokemon{}, false
 	}
 
 	if time.Now().After(item.expiresAt) {
@@ -57,13 +57,13 @@ func (c *Cache) Get(id int) (PokemonResponse, bool) {
 		}
 		c.mu.Unlock()
 
-		return PokemonResponse{}, false
+		return Pokemon{}, false
 	}
 
 	return item.pokemon, true
 }
 
-func (c *Cache) Set(id int, pokemon PokemonResponse) {
+func (c *Cache) Set(id int, pokemon Pokemon) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

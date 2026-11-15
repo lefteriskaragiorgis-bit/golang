@@ -1,7 +1,11 @@
 package config
 
 import (
+	"context"
+	"database/sql"
 	"errors"
+	"net"
+	"net/url"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -61,4 +65,34 @@ func getEnv(key, fallback string) string {
 	}
 
 	return fallback
+}
+
+func ConnectDB() (*sql.DB, error) {
+	cfg, err := Load()
+	if err != nil {
+		return nil, err
+	}
+
+	dbURL := &url.URL{
+		Scheme: "postgres",
+		User:   url.UserPassword(cfg.DBUser, cfg.DBPassword),
+		Host:   net.JoinHostPort(cfg.DBHost, cfg.DBPort),
+		Path:   cfg.DBName,
+	}
+
+	query := dbURL.Query()
+	query.Set("sslmode", cfg.DBSSLMode)
+	dbURL.RawQuery = query.Encode()
+
+	db, err := sql.Open("postgres", dbURL.String())
+	if err != nil {
+		return nil, err
+	}
+
+	if err := db.PingContext(context.Background()); err != nil {
+		db.Close()
+		return nil, err
+	}
+
+	return db, nil
 }

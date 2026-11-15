@@ -147,7 +147,13 @@
         </div>
 
         <h2>About</h2>
-
+        {{if .Description}}
+            <div class="pokemon-description">
+                <div class="description">
+                    <span class="stat-value">{{.Description}}</span>
+                </div>
+            </div>
+        {{end}}
         <div class="pokemon-info">
             <div class="stat">
                 <span class="stat-label">Height</span>

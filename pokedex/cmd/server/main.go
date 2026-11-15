@@ -5,17 +5,31 @@ import (
 	"log"
 	"net/http"
 
+	_ "github.com/lib/pq"
+
+	"github.com/lefteriskaragiorgis-bit/golang/internal/config"
 	"github.com/lefteriskaragiorgis-bit/golang/internal/handler"
 	"github.com/lefteriskaragiorgis-bit/golang/internal/pokemon"
+	"github.com/lefteriskaragiorgis-bit/golang/internal/repository"
+	"github.com/lefteriskaragiorgis-bit/golang/internal/service"
 )
 
 func main() {
+	db, err := config.ConnectDB()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
 	templates := template.Must(template.ParseGlob("templates/*.html"))
+	repository := &repository.PokemonRepository{DB: db}
+	cache := pokemon.NewCache()
+	service := &service.PokemonService{Repository: repository}
 
 	pokemonHandler := &handler.PokemonHandler{
 		Templates: templates,
-		Cache:     pokemon.NewCache(),
-		API:       pokemon.NewAPIClient(),
+		Cache:     cache,
+		Service:   service,
 	}
 
 	mux := http.NewServeMux()

@@ -102,3 +102,6 @@ docker compose down -v
 ```
 
 **Warning:** The last command permanently deletes your local PostgreSQL data.
+
+
+TODO: make sure to add Auth for the admin endpoints to update pokemons
