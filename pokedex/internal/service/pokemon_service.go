@@ -103,9 +103,17 @@ func (s *PokemonService) Update(
 		return err
 	}
 
-	// Update the existing Pokémon with the new values, for the fields that are allowed to be updated
 	existingPokemon.Description = pokemon.Description
 
-	// Update the Pokémon in the repository
-	return s.Repository.UpdatePokemon(ctx, existingPokemon)
+	err = s.Repository.UpdatePokemon(ctx, existingPokemon)
+	if err != nil {
+		return err
+	}
+
+	// remove pokemon from cache if it exists
+	if s.DetailCache != nil {
+		s.DetailCache.Delete(fmt.Sprintf("%d", existingPokemon.ID))
+	}
+
+	return nil
 }
