@@ -97,23 +97,24 @@ func (s *PokemonService) GetPokemonByName(
 func (s *PokemonService) Update(
 	ctx context.Context,
 	pokemon pokemon.PokemonUpdateRequest,
-) error {
+) (*pokemon.Pokemon, error) {
 	existingPokemon, err := s.Repository.FindByID(ctx, fmt.Sprintf("%d", pokemon.ID))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	existingPokemon.Description = pokemon.Description
 
 	err = s.Repository.UpdatePokemon(ctx, existingPokemon)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// remove pokemon from cache if it exists
+	// update pokemon in cache
 	if s.DetailCache != nil {
-		s.DetailCache.Delete(fmt.Sprintf("%d", existingPokemon.ID))
+		s.DetailCache.Set(fmt.Sprintf("%d", existingPokemon.ID), *existingPokemon)
 	}
 
-	return nil
+	fmt.Printf("Updated Pokémon %s in database and cache\n", existingPokemon.Name)
+	return existingPokemon, nil
 }

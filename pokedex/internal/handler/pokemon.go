@@ -146,13 +146,15 @@ func (h *PokemonHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Service.Update(r.Context(), pokemon); err != nil {
+	updatedPokemon, err := h.Service.Update(r.Context(), pokemon)
+
+	if err != nil {
 		http.Error(w, "Could not update Pokémon", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(pokemon); err != nil {
+	if err := json.NewEncoder(w).Encode(updatedPokemon); err != nil {
 		log.Printf("Could not encode Pokémon: %v", err)
 	}
 }
