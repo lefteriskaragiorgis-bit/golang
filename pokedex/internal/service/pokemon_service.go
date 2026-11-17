@@ -20,7 +20,22 @@ func (s *PokemonService) List(
 	limit int,
 	offset int,
 ) ([]pokemon.PokemonListItem, error) {
-	return s.Repository.List(ctx, limit, offset)
+	if s.ListCache != nil {
+		if cachedList, exists := s.ListCache.Get(fmt.Sprintf("list_%d_%d", limit, offset)); exists {
+			fmt.Printf("Cache HIT: Pokémon list %d_%d\n", limit, offset)
+			return cachedList, nil
+		}
+		fmt.Printf("Cache MISS: Pokémon list %d_%d\n", limit, offset)
+	}
+
+	pokemons, err := s.Repository.List(ctx, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	if s.ListCache != nil {
+		s.ListCache.Set(fmt.Sprintf("list_%d_%d", limit, offset), pokemons)
+	}
+	return pokemons, nil
 }
 
 func (s *PokemonService) GetByID(
