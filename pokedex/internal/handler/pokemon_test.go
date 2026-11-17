@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/lefteriskaragiorgis-bit/golang/internal/pokemon"
+	"github.com/lefteriskaragiorgis-bit/golang/internal/service"
 )
 
 func TestSearch(t *testing.T) {
@@ -28,16 +29,12 @@ func TestSearch(t *testing.T) {
 	))
 	defer server.Close()
 
-	cache := pokemon.NewCache()
+	detailCache := pokemon.NewCache[pokemon.Pokemon]()
 
-	apiClient := &pokemon.APIClient{
-		BaseURL:    server.URL,
-		HTTPClient: server.Client(),
-	}
+	service := &service.PokemonService{Repository: nil, DetailCache: detailCache, ListCache: nil}
 
-	handler := &PokemonHandler{
-		Cache: cache,
-		API:   apiClient,
+	pokemonHandler := &PokemonHandler{
+		Service: service,
 	}
 
 	req := httptest.NewRequest(
@@ -48,7 +45,7 @@ func TestSearch(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 
-	handler.Search(rec, req)
+	pokemonHandler.Search(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected status %d, got %d",
@@ -59,7 +56,7 @@ func TestSearch(t *testing.T) {
 		t.Errorf("expected application/json, got %s", contentType)
 	}
 
-	var result pokemon.PokemonResponse
+	var result pokemon.Pokemon
 
 	if err := json.NewDecoder(rec.Body).Decode(&result); err != nil {
 		t.Fatalf("could not decode response: %v", err)
