@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/lefteriskaragiorgis-bit/golang/internal/pokemon"
 	"github.com/lefteriskaragiorgis-bit/golang/internal/service"
 )
 
@@ -131,6 +132,26 @@ func (h *PokemonHandler) Search(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
+	if err := json.NewEncoder(w).Encode(pokemon); err != nil {
+		log.Printf("Could not encode Pokémon: %v", err)
+	}
+}
+
+func (h *PokemonHandler) Update(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Received request: %s %s", r.Method, r.URL.String())
+
+	var pokemon pokemon.PokemonUpdateRequest
+	if err := json.NewDecoder(r.Body).Decode(&pokemon); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.Service.Update(r.Context(), pokemon); err != nil {
+		http.Error(w, "Could not update Pokémon", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(pokemon); err != nil {
 		log.Printf("Could not encode Pokémon: %v", err)
 	}

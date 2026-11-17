@@ -55,3 +55,8 @@ type PokemonSprites struct {
 		} `json:"official-artwork"`
 	} `json:"other"`
 }
+
+type PokemonUpdateRequest struct {
+	ID          int    `json:"id"`
+	Description string `json:"description"`
+}

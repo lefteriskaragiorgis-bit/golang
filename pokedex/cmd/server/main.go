@@ -43,5 +43,7 @@ func main() {
 	mux.HandleFunc("GET /api/pokemon", pokemonHandler.ListJSON)
 	mux.HandleFunc("GET /api/pokemon/search", pokemonHandler.Search)
 
+	mux.HandleFunc("PUT /admin/pokemon", pokemonHandler.Update)
+
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }

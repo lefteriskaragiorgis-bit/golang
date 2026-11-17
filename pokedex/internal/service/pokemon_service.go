@@ -93,3 +93,19 @@ func (s *PokemonService) GetPokemonByName(
 
 	return *p, nil
 }
+
+func (s *PokemonService) Update(
+	ctx context.Context,
+	pokemon pokemon.PokemonUpdateRequest,
+) error {
+	existingPokemon, err := s.Repository.FindByID(ctx, fmt.Sprintf("%d", pokemon.ID))
+	if err != nil {
+		return err
+	}
+
+	// Update the existing Pokémon with the new values, for the fields that are allowed to be updated
+	existingPokemon.Description = pokemon.Description
+
+	// Update the Pokémon in the repository
+	return s.Repository.UpdatePokemon(ctx, existingPokemon)
+}

@@ -174,3 +174,17 @@ func (r *PokemonRepository) SearchPokemonByName(ctx context.Context, name string
 
 	return &pokemon, nil
 }
+
+func (r *PokemonRepository) UpdatePokemon(ctx context.Context, p *pokemon.Pokemon) error {
+	_, err := r.DB.ExecContext(ctx,
+		`UPDATE pokemon
+         SET description = $1
+         WHERE id = $2`,
+		p.Description,
+		p.ID,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
