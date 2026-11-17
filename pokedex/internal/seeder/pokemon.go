@@ -121,13 +121,13 @@ func (p *PokemonSeeder) SeedPokemon(ctx context.Context, inputPath string) error
 	return nil
 }
 
-func (p *PokemonSeeder) loadPokemon() ([]pokemon.PokemonResponse, error) {
+func (p *PokemonSeeder) loadPokemon() ([]pokemon.Pokemon, error) {
 	data, err := os.ReadFile(p.InputPath)
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", p.InputPath, err)
 	}
 
-	var pokemons []pokemon.PokemonResponse
+	var pokemons []pokemon.Pokemon
 	if err := json.Unmarshal(data, &pokemons); err != nil {
 		return nil, fmt.Errorf("unmarshal %s: %w", p.InputPath, err)
 	}
